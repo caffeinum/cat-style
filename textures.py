@@ -83,8 +83,7 @@ IMAGE_W = 256
 
 # Note: tweaked to use average pooling instead of maxpooling
 def build_model():
-    net = {}
-    net['input'] = InputLayer((1, 3, IMAGE_W, IMAGE_W))
+    net = {'input': InputLayer((1, 3, IMAGE_W, IMAGE_W))}
     net['conv1_1'] = ConvLayer(net['input'], 64, 3, pad=1)
     net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
     net['pool1'] = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')
@@ -171,30 +170,27 @@ plt.imshow(rawim)
 
 def gram_matrix(x):
     x = x.flatten(ndim=3)
-    g = T.tensordot(x, x, axes=([2], [2]))
-    return g
+    return T.tensordot(x, x, axes=([2], [2]))
 
 
 def content_loss(P, X, layer):
     p = P[layer]
     x = X[layer]
-    
-    loss = 1./2 * ((x - p)**2).sum()
-    return loss
+
+    return 1./2 * ((x - p)**2).sum()
 
 
 def style_loss(A, X, layer):
     a = A[layer]
     x = X[layer]
-    
+
     A = gram_matrix(a)
     G = gram_matrix(x)
-    
+
     N = a.shape[1]
     M = a.shape[2] * a.shape[3]
-    
-    loss = 1./(4 * N**2 * M**2) * ((G - A)**2).sum()
-    return loss
+
+    return 1./(4 * N**2 * M**2) * ((G - A)**2).sum()
 
 def total_variation_loss(x):
     return (((x[:,:,:-1,:-1] - x[:,:,1:,:-1])**2 + (x[:,:,:-1,:-1] - x[:,:,:-1,1:])**2)**1.25).sum()
@@ -217,18 +213,16 @@ art_features = {k: theano.shared(output.eval({input_im_theano: art}))
 generated_image = theano.shared(floatX(np.random.uniform(-128, 128, (1, 3, IMAGE_W, IMAGE_W))))
 
 gen_features = lasagne.layers.get_output(layers.values(), generated_image)
-gen_features = {k: v for k, v in zip(layers.keys(), gen_features)}
+gen_features = dict(zip(layers.keys(), gen_features))
 
 
 # In[ ]:
 
 
 # Define loss function
-losses = []
+losses = [0.2e6 * style_loss(art_features, gen_features, 'conv1_1')]
 
 
-# style loss
-losses.append(0.2e6 * style_loss(art_features, gen_features, 'conv1_1'))
 losses.append(0.2e6 * style_loss(art_features, gen_features, 'conv2_1'))
 losses.append(0.2e6 * style_loss(art_features, gen_features, 'conv3_1'))
 losses.append(0.2e6 * style_loss(art_features, gen_features, 'conv4_1'))
@@ -264,9 +258,7 @@ def eval_grad(x0):
 generated_image.set_value(floatX(np.random.uniform(-128, 128, (1, 3, IMAGE_W, IMAGE_W))))
 
 x0 = generated_image.get_value().astype('float64')
-x_style = []
-x_style.append(x0)
-
+x_style = [x0]
 # Optimize, saving the result periodically
 for i in range(2):
     print(i)
@@ -301,11 +293,9 @@ plt.tight_layout()
 
 
 # Define loss function
-losses = []
+losses = [0.2e6 * style_loss(art_features, gen_features, 'conv1_1')]
 
 
-# style loss
-losses.append(0.2e6 * style_loss(art_features, gen_features, 'conv1_1'))
 losses.append(0.2e6 * style_loss(art_features, gen_features, 'conv2_1'))
 losses.append(0.2e6 * style_loss(art_features, gen_features, 'conv3_1'))
 losses.append(0.2e6 * style_loss(art_features, gen_features, 'conv4_1'))
@@ -329,9 +319,7 @@ f_grad = theano.function([], grad)
 generated_image.set_value(floatX(np.random.uniform(-128, 128, (1, 3, IMAGE_W, IMAGE_W))))
 
 x0 = generated_image.get_value().astype('float64')
-x_content = []
-x_content.append(x0)
-
+x_content = [x0]
 # Optimize, saving the result periodically
 for i in range(2):
     print(i)
